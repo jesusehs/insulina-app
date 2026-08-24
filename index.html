@@ -258,20 +258,129 @@
   <h1>Registro de comidas e insulina</h1>
 </header>
 
-<nav class="tabs">
+<nav class="tabs" id="mainNav" style="display:none;">
   <button data-tab="builder" class="active">Armar comida</button>
   <button data-tab="foods">Mis alimentos</button>
   <button data-tab="history">Historial</button>
   <button data-tab="settings">Más</button>
 </nav>
 
-<main id="app"></main>
+<main id="app" style="display:none;"></main>
+
+<div id="loadingScreen" style="padding:70px 20px;text-align:center;color:var(--muted);font-size:13.5px;">Cargando…</div>
+
+<div id="authScreen" style="display:none;max-width:600px;margin:0 auto;padding:0 16px;">
+  <div class="card">
+    <h2 id="authTitle">Inicia sesión</h2>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5;">Con una cuenta, tus datos se sincronizan entre todos tus dispositivos. Créala una sola vez; en otros dispositivos solo inicia sesión con el mismo correo.</p>
+    <form id="authForm">
+      <div class="field">
+        <label>Correo</label>
+        <input type="email" id="authEmail" required>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="authPassword" required minlength="6">
+      </div>
+      <button type="submit" class="primary" id="authSubmitBtn">Iniciar sesión</button>
+      <button type="button" class="secondary" id="authToggleBtn">¿No tienes cuenta? Crear una</button>
+    </form>
+    <div id="authError" style="color:var(--danger);font-size:12.5px;margin-top:10px;"></div>
+  </div>
+</div>
 
 <div class="disclaimer">
   Esta app solo registra y suma tus propios datos; no calcula ni sugiere dosis nuevas. Los ratios de cada alimento y cualquier ajuste deben ser definidos y revisados con tu médico o educador en diabetes.
 </div>
 
 <div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* ---------- Firebase ---------- */
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+const FIREBASE_CONFIGURED = !firebaseConfig.apiKey.startsWith('TU_');
+let auth, db, currentUser = null, authMode = 'login';
+
+if(FIREBASE_CONFIGURED){
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+}
+
+function showScreen(which){
+  document.getElementById('loadingScreen').style.display = which==='loading' ? '' : 'none';
+  document.getElementById('authScreen').style.display = which==='auth' ? '' : 'none';
+  document.getElementById('mainNav').style.display = which==='app' ? '' : 'none';
+  document.getElementById('app').style.display = which==='app' ? '' : 'none';
+}
+
+function translateAuthError(code){
+  const map = {
+    'auth/invalid-email': 'Correo inválido.',
+    'auth/user-not-found': 'Correo o contraseña incorrectos.',
+    'auth/wrong-password': 'Correo o contraseña incorrectos.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ese correo ya tiene una cuenta — intenta iniciar sesión.',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.'
+  };
+  return map[code] || 'Ocurrió un error, intenta de nuevo.';
+}
+
+if(!FIREBASE_CONFIGURED){
+  showScreen('auth');
+  document.getElementById('authScreen').innerHTML = `
+    <div class="card">
+      <h2>Falta configurar</h2>
+      <p style="font-size:13px;color:var(--muted);line-height:1.5;">A este archivo le falta pegar la configuración de tu proyecto de Firebase (el bloque <code>firebaseConfig</code> cerca del final del HTML).</p>
+    </div>`;
+}else{
+  auth.onAuthStateChanged(user=>{
+    currentUser = user;
+    if(user){
+      showScreen('app');
+      loadAll();
+    }else{
+      showScreen('auth');
+    }
+  });
+
+  document.getElementById('authToggleBtn').addEventListener('click', ()=>{
+    authMode = authMode==='login' ? 'signup' : 'login';
+    document.getElementById('authTitle').textContent = authMode==='login' ? 'Inicia sesión' : 'Crea tu cuenta';
+    document.getElementById('authSubmitBtn').textContent = authMode==='login' ? 'Iniciar sesión' : 'Crear cuenta';
+    document.getElementById('authToggleBtn').textContent = authMode==='login' ? '¿No tienes cuenta? Crear una' : '¿Ya tienes cuenta? Iniciar sesión';
+    document.getElementById('authError').textContent = '';
+  });
+
+  document.getElementById('authForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errEl = document.getElementById('authError');
+    errEl.textContent = '';
+    try{
+      if(authMode==='login'){
+        await auth.signInWithEmailAndPassword(email, password);
+      }else{
+        await auth.createUserWithEmailAndPassword(email, password);
+      }
+    }catch(err){
+      errEl.textContent = translateAuthError(err.code);
+    }
+  });
+}
+</script>
 
 <script>
 /* ---------- State ---------- */
@@ -297,30 +406,57 @@ let builder = {
 const MEAL_TYPES = ['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Colación nocturna'];
 
 /* ---------- Storage ---------- */
+const STORE_PREFIX = 'insulinaApp:';
+function cacheLocally(){
+  try{
+    localStorage.setItem(STORE_PREFIX+'foods', JSON.stringify(foods));
+    localStorage.setItem(STORE_PREFIX+'meals', JSON.stringify(meals));
+    localStorage.setItem(STORE_PREFIX+'glucoseChecks', JSON.stringify(glucoseChecks));
+  }catch(e){ console.error(e); }
+}
+function loadLocalCache(){
+  try{
+    const f = localStorage.getItem(STORE_PREFIX+'foods'); foods = f ? JSON.parse(f) : [];
+    const m = localStorage.getItem(STORE_PREFIX+'meals'); meals = m ? JSON.parse(m) : [];
+    const g = localStorage.getItem(STORE_PREFIX+'glucoseChecks'); glucoseChecks = g ? JSON.parse(g) : [];
+  }catch(e){ foods=[]; meals=[]; glucoseChecks=[]; }
+}
+async function syncToCloud(){
+  if(!currentUser) return;
+  try{
+    await db.collection('users').doc(currentUser.uid).set({
+      foods, meals, glucoseChecks, updatedAt: new Date().toISOString()
+    });
+  }catch(e){
+    console.error(e);
+    showToast('Guardado local — sin conexión para sincronizar');
+  }
+}
 async function loadAll(){
+  loadLocalCache();
+  render(); // instant paint from local cache while Firestore loads
+  if(!currentUser) return;
   try{
-    const f = await window.storage.get('foods');
-    foods = f ? JSON.parse(f.value) : [];
-  }catch(e){ foods = []; }
-  try{
-    const m = await window.storage.get('meals');
-    meals = m ? JSON.parse(m.value) : [];
-  }catch(e){ meals = []; }
-  try{
-    const g = await window.storage.get('glucoseChecks');
-    glucoseChecks = g ? JSON.parse(g.value) : [];
-  }catch(e){ glucoseChecks = []; }
-  render();
+    const snap = await db.collection('users').doc(currentUser.uid).get();
+    if(snap.exists){
+      const data = snap.data();
+      foods = data.foods || [];
+      meals = data.meals || [];
+      glucoseChecks = data.glucoseChecks || [];
+      cacheLocally();
+      render();
+    }else{
+      // first time this account logs in — push whatever's cached locally
+      await syncToCloud();
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Sin conexión, usando datos guardados en este dispositivo');
+  }
 }
-async function saveFoods(){
-  try{ await window.storage.set('foods', JSON.stringify(foods)); }catch(e){ console.error(e); }
-}
-async function saveMeals(){
-  try{ await window.storage.set('meals', JSON.stringify(meals)); }catch(e){ console.error(e); }
-}
-async function saveGlucoseChecks(){
-  try{ await window.storage.set('glucoseChecks', JSON.stringify(glucoseChecks)); }catch(e){ console.error(e); }
-}
+async function saveFoods(){ cacheLocally(); await syncToCloud(); }
+async function saveMeals(){ cacheLocally(); await syncToCloud(); }
+async function saveGlucoseChecks(){ cacheLocally(); await syncToCloud(); }
 
 /* ---------- Helpers ---------- */
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -876,8 +1012,13 @@ function generateWeekReport(endDateStr){
 function renderSettingsTab(){
   return `
     <div class="card">
+      <h2>Cuenta</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Sesión iniciada como <b style="color:var(--ink)">${escapeHtml(currentUser?.email||'')}</b>. Usa este mismo correo para ver tus datos en otro dispositivo.</p>
+      <button type="button" class="secondary" id="signOutBtn" style="margin-top:0;">Cerrar sesión</button>
+    </div>
+    <div class="card">
       <h2>Respaldo y exportación</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Tus datos ya quedan guardados en tu cuenta de Claude, pero puedes exportarlos aquí como respaldo extra o para abrir en Excel.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Tus datos se sincronizan con tu cuenta en la nube, pero puedes exportarlos aquí como respaldo extra o para abrir en Excel.</p>
       <button type="button" class="primary" id="exportJsonBtn">Exportar respaldo completo (JSON)</button>
       <button type="button" class="secondary" id="exportMealsCsvBtn">Exportar comidas (CSV)</button>
       <button type="button" class="secondary" id="exportGlucoseCsvBtn">Exportar glucosa (CSV)</button>
@@ -1150,6 +1291,10 @@ function attachHandlers(){
   });
 
   // SETTINGS TAB
+  const signOutBtn = document.getElementById('signOutBtn');
+  if(signOutBtn) signOutBtn.addEventListener('click', ()=>{
+    if(confirm('¿Cerrar sesión?')) auth.signOut();
+  });
   const exportJsonBtn = document.getElementById('exportJsonBtn');
   if(exportJsonBtn) exportJsonBtn.addEventListener('click', exportBackupJSON);
   const exportMealsCsvBtn = document.getElementById('exportMealsCsvBtn');
@@ -1202,8 +1347,6 @@ async function shareText(text){
     copyText(text);
   }
 }
-
-loadAll();
 </script>
 </body>
 </html>
