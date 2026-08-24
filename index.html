@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Registro de Comidas e Insulina</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Insulina">
+<meta name="theme-color" content="#134B41">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#F5F8F7;
+    --card:#FFFFFF;
+    --ink:#1B2B29;
+    --muted:#5C6E6A;
+    --teal:#1F6E5F;
+    --teal-dark:#134B41;
+    --teal-soft:#EEF6F3;
+    --amber:#D9A441;
+    --line:#E1E9E6;
+    --danger:#B5493B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    padding-bottom:50px;
+  }
+  header{
+    background:var(--teal-dark);
+    color:#fff;
+    padding:calc(env(safe-area-inset-top) + 20px) 20px 18px;
+  }
+  header .eyebrow{
+    font-size:11.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:#A9CFC4;
+    margin-bottom:5px;
+  }
+  header h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:21px;
+    margin:0;
+    font-weight:700;
+  }
+
+  nav.tabs{
+    display:flex;
+    gap:6px;
+    padding:12px 16px 0;
+    max-width:600px;
+    margin:0 auto;
+  }
+  nav.tabs button{
+    flex:1;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:9px 4px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--muted);
+    font-family:inherit;
+  }
+  nav.tabs button.active{
+    background:var(--teal);
+    color:#fff;
+    border-color:var(--teal);
+  }
+
+  main{
+    max-width:600px;
+    margin:0 auto;
+    padding:14px 16px 0;
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 8px;text-align:center;}
+  .stat .num{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--teal-dark);}
+  .stat .lbl{font-size:10.5px;color:var(--muted);margin-top:2px;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    margin:0 0 12px;
+    color:var(--teal-dark);
+  }
+  .card h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13.5px;
+    margin:0 0 8px;
+    color:var(--teal-dark);
+  }
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .field{margin-bottom:10px;}
+  .field.full{grid-column:1/-1;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:500;}
+  input, select, textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+    background:#FAFCFB;
+    color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--teal);}
+
+  button.primary{
+    width:100%;
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    padding:11px;
+    font-size:14.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  button.primary:active{background:var(--teal-dark);}
+  button.secondary{
+    width:100%;
+    background:var(--teal-soft);
+    color:var(--teal-dark);
+    border:1px solid #B9D6CB;
+    border-radius:9px;
+    padding:10px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    margin-top:8px;
+  }
+  button.ghost{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:12.5px;
+    cursor:pointer;
+    padding:4px 6px;
+    font-family:inherit;
+  }
+  button.ghost.danger{color:var(--danger);}
+
+  .seg{display:flex;gap:6px;margin-bottom:12px;}
+  .seg button{
+    flex:1;
+    background:var(--teal-soft);
+    border:1px solid #D3E6DE;
+    border-radius:8px;
+    padding:8px 4px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--teal-dark);
+    font-family:inherit;
+  }
+  .seg button.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+  .mealtype-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .mealtype-row button{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--muted);
+    font-family:inherit;
+  }
+  .mealtype-row button.active{background:var(--amber);color:#fff;border-color:var(--amber);}
+
+  .food-list{max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;}
+  .food-opt{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 12px;border-bottom:1px solid var(--line);font-size:13.5px;
+  }
+  .food-opt:last-child{border-bottom:none;}
+  .food-opt-name{font-weight:600;}
+  .food-opt-meta{font-size:11.5px;color:var(--muted);}
+  .food-opt button{
+    background:var(--teal);color:#fff;border:none;border-radius:6px;
+    padding:5px 10px;font-size:12px;font-weight:600;font-family:inherit;
+  }
+
+  .item-row{
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--teal-soft);border-radius:9px;padding:9px 12px;margin-bottom:8px;
+  }
+  .item-row .item-name{font-size:13.5px;font-weight:600;}
+  .item-row .item-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .item-row input{width:56px;padding:5px 6px;font-size:13px;text-align:center;}
+  .item-row .item-right{display:flex;align-items:center;gap:8px;}
+
+  .totals{
+    display:flex;justify-content:space-between;
+    background:var(--teal-dark);color:#fff;border-radius:10px;
+    padding:12px 14px;margin:12px 0;font-family:'Space Grotesk',sans-serif;
+  }
+  .totals div{text-align:center;flex:1;}
+  .totals .n{font-size:18px;font-weight:700;}
+  .totals .l{font-size:10.5px;color:#B9D6CB;font-family:'Inter',sans-serif;margin-top:2px;}
+
+  textarea#messagePreview{
+    min-height:150px;font-family:ui-monospace,monospace;font-size:12.5px;
+    line-height:1.5;background:#FAFCFB;
+  }
+
+  .entry{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+  .entry-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .entry-food{font-weight:600;font-size:14px;}
+  .entry-date{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .entry-tag{
+    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--amber);
+  }
+  .entry-items{margin-top:8px;font-size:12.5px;color:var(--muted);}
+  .entry-items div{margin-bottom:2px;}
+  .entry-note{margin-top:6px;font-size:12.5px;color:var(--muted);font-style:italic;}
+  .entry-actions{display:flex;gap:14px;margin-top:8px;}
+
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 10px;}
+  .disclaimer{font-size:11px;color:var(--muted);text-align:center;margin:20px 16px 0;line-height:1.5;}
+
+  .toast{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    background:var(--teal-dark);color:#fff;padding:10px 18px;border-radius:20px;
+    font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;
+    z-index:50;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Diabetes tipo 1</div>
+  <h1>Registro de comidas e insulina</h1>
+</header>
+
+<nav class="tabs">
+  <button data-tab="builder" class="active">Armar comida</button>
+  <button data-tab="foods">Mis alimentos</button>
+  <button data-tab="history">Historial</button>
+  <button data-tab="settings">Más</button>
+</nav>
+
+<main id="app"></main>
+
+<div class="disclaimer">
+  Esta app solo registra y suma tus propios datos; no calcula ni sugiere dosis nuevas. Los ratios de cada alimento y cualquier ajuste deben ser definidos y revisados con tu médico o educador en diabetes.
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- State ---------- */
+let foods = [];
+let meals = [];
+let glucoseChecks = [];
+let currentTab = 'builder';
+let editingFoodId = null;
+let editingMealId = null;
+let foodSearchQuery = '';
+let addMode = 'library'; // 'library' | 'custom'
+let selectedDate = todayLocalDateStr();
+let builder = {
+  mealType: 'Cena',
+  datetime: nowLocalDatetimeValue(),
+  items: [], // {foodId(optional), name, portionLabel, multiplier, carbs, insulin}
+  glucose: '',
+  correctionInsulin: '',
+  notes: '',
+  message: ''
+};
+
+const MEAL_TYPES = ['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Colación nocturna'];
+
+/* ---------- Storage ---------- */
+async function loadAll(){
+  try{
+    const f = await window.storage.get('foods');
+    foods = f ? JSON.parse(f.value) : [];
+  }catch(e){ foods = []; }
+  try{
+    const m = await window.storage.get('meals');
+    meals = m ? JSON.parse(m.value) : [];
+  }catch(e){ meals = []; }
+  try{
+    const g = await window.storage.get('glucoseChecks');
+    glucoseChecks = g ? JSON.parse(g.value) : [];
+  }catch(e){ glucoseChecks = []; }
+  render();
+}
+async function saveFoods(){
+  try{ await window.storage.set('foods', JSON.stringify(foods)); }catch(e){ console.error(e); }
+}
+async function saveMeals(){
+  try{ await window.storage.set('meals', JSON.stringify(meals)); }catch(e){ console.error(e); }
+}
+async function saveGlucoseChecks(){
+  try{ await window.storage.set('glucoseChecks', JSON.stringify(glucoseChecks)); }catch(e){ console.error(e); }
+}
+
+/* ---------- Helpers ---------- */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmt(n, d=1){ return Number(n).toFixed(d).replace(/\.0$/,''); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function nowLocalDatetimeValue(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function localDateStrFromISO(iso){
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+function todayLocalDateStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+function addDaysToDateStr(dateStr, delta){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate()+delta);
+  return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+}
+function formatDateHeading(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  const s = dt.toLocaleDateString('es-PE', {weekday:'long', day:'2-digit', month:'long'});
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function timeStrFromISO(iso){
+  return new Date(iso).toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+}
+function datetimeLocalValueFromISO(iso){
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function formatShortDate(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${pad2(d)}/${pad2(m)}`;
+}
+function formatShortDateWithWeekday(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  const wd = dt.toLocaleDateString('es-PE', {weekday:'short'}).replace('.','');
+  return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad2(d)}/${pad2(m)}`;
+}
+function csvEscape(v){
+  const s = String(v ?? '');
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function exportBackupJSON(){
+  const data = {exportedAt: new Date().toISOString(), foods, meals, glucoseChecks};
+  downloadFile('respaldo-insulina.json', JSON.stringify(data,null,2), 'application/json');
+  showToast('Respaldo descargado');
+}
+function exportMealsCSV(){
+  const header = ['Fecha','Hora','Tipo de comida','Alimento','Ración','Raciones','Carbohidratos(g)','Insulina alimento(U)','Insulina corrección(U)','Insulina total comida(U)','Glucosa previa(mg/dL)','Notas'];
+  const rows = [header.join(',')];
+  meals.slice().sort((a,b)=>new Date(a.datetime)-new Date(b.datetime)).forEach(m=>{
+    const d = new Date(m.datetime);
+    const fecha = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    const hora = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    const s = splitInsulin(m);
+    m.items.forEach(it=>{
+      rows.push([fecha,hora,m.mealType,it.name,it.portionLabel||'',it.multiplier,it.carbs,it.insulin,s.corr,s.total,m.glucose||'',m.notes||''].map(csvEscape).join(','));
+    });
+  });
+  downloadFile('comidas.csv', rows.join('\n'), 'text/csv;charset=utf-8');
+  showToast('CSV descargado');
+}
+function exportGlucoseCSV(){
+  const header = ['Fecha','Hora','Glucosa(mg/dL)','Nota'];
+  const rows = [header.join(',')];
+  glucoseChecks.slice().sort((a,b)=>new Date(a.datetime)-new Date(b.datetime)).forEach(g=>{
+    const d = new Date(g.datetime);
+    const fecha = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    const hora = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    rows.push([fecha,hora,g.value,g.note||''].map(csvEscape).join(','));
+  });
+  downloadFile('glucosa.csv', rows.join('\n'), 'text/csv;charset=utf-8');
+  showToast('CSV descargado');
+}
+
+/* ---------- Render root ---------- */
+function render(){
+  document.querySelectorAll('nav.tabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab === currentTab);
+  });
+  const app = document.getElementById('app');
+  if(currentTab === 'foods') app.innerHTML = renderFoodsTab();
+  else if(currentTab === 'history') app.innerHTML = renderHistoryTab();
+  else if(currentTab === 'settings') app.innerHTML = renderSettingsTab();
+  else app.innerHTML = renderBuilderTab();
+  attachHandlers();
+}
+
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{ currentTab = b.dataset.tab; render(); });
+});
+
+/* ================= FOODS TAB ================= */
+function renderFoodListHTML(list){
+  if(list.length===0){
+    return foods.length===0
+      ? '<div class="empty">Aún no agregas alimentos. Agrega el primero arriba — por ejemplo, tu taza de arroz con su ratio habitual.</div>'
+      : '<div class="empty">No se encontraron alimentos con ese nombre.</div>';
+  }
+  return list.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(f=>`
+    <div class="entry">
+      <div class="entry-top">
+        <div>
+          <div class="entry-food">${escapeHtml(f.name)}</div>
+          <div class="entry-date">${escapeHtml(f.portion||'Sin ración especificada')}</div>
+        </div>
+        <div class="entry-tag">1:${fmt(f.insulin>0? f.carbs/f.insulin : 0)}</div>
+      </div>
+      <div class="entry-meta" style="display:flex;gap:14px;margin-top:8px;font-size:12.5px;color:var(--muted);">
+        <span><b style="color:var(--ink)">${fmt(f.carbs)}g</b> carb.</span>
+        <span><b style="color:var(--ink)">${fmt(f.insulin)}U</b> insulina</span>
+      </div>
+      <div class="entry-actions">
+        <button class="ghost editFoodBtn" data-id="${f.id}">Editar</button>
+        <button class="ghost danger delFoodBtn" data-id="${f.id}">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function attachFoodListHandlers(){
+  document.querySelectorAll('.editFoodBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{ editingFoodId=b.dataset.id; render(); window.scrollTo(0,0); });
+  });
+  document.querySelectorAll('.delFoodBtn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este alimento de tu lista?')) return;
+      foods = foods.filter(f=>f.id!==b.dataset.id);
+      await saveFoods();
+      render();
+    });
+  });
+}
+
+function renderFoodsTab(){
+  const editing = foods.find(f=>f.id===editingFoodId);
+  const filtered = foodSearchQuery.trim()
+    ? foods.filter(f=>f.name.toLowerCase().includes(foodSearchQuery.trim().toLowerCase()))
+    : foods;
+  return `
+    <div class="card">
+      <h2>${editing ? 'Editar alimento' : 'Agregar alimento'}</h2>
+      <form id="foodForm">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" id="fName" placeholder="Ej. Arroz blanco" value="${editing?escapeHtml(editing.name):''}" required>
+        </div>
+        <div class="field">
+          <label>Ración de referencia</label>
+          <input type="text" id="fPortion" placeholder="Ej. 1 taza (150g)" value="${editing?escapeHtml(editing.portion):''}">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Carbohidratos (g)</label>
+            <input type="number" id="fCarbs" min="0" step="0.1" placeholder="40" value="${editing?editing.carbs:''}" required>
+          </div>
+          <div class="field">
+            <label>Insulina habitual (U)</label>
+            <input type="number" id="fInsulin" min="0" step="0.1" placeholder="4" value="${editing?editing.insulin:''}" required>
+          </div>
+        </div>
+        <button type="submit" class="primary">${editing ? 'Guardar cambios' : 'Agregar a mi lista'}</button>
+        ${editing ? `<button type="button" class="secondary" id="cancelEditFood">Cancelar</button>` : ''}
+      </form>
+    </div>
+
+    <div class="field">
+      <input type="text" id="foodSearch" placeholder="Buscar alimento..." value="${escapeHtml(foodSearchQuery)}">
+    </div>
+
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--teal-dark);margin:0 0 10px 4px;" id="foodCountLabel">
+      Mi lista (${filtered.length}${foodSearchQuery.trim()?` de ${foods.length}`:''})
+    </h2>
+    <div id="foodListContainer">${renderFoodListHTML(filtered)}</div>
+  `;
+}
+
+/* ================= BUILDER TAB ================= */
+function computeTotals(){
+  const carbs = builder.items.reduce((a,i)=>a+i.carbs,0);
+  const mealInsulin = builder.items.reduce((a,i)=>a+i.insulin,0);
+  const correctionInsulin = parseFloat(builder.correctionInsulin) || 0;
+  const totalInsulin = mealInsulin + correctionInsulin;
+  return {carbs, mealInsulin, correctionInsulin, totalInsulin};
+}
+
+function splitInsulin(m){
+  const total = typeof m.totalInsulin==='number' ? m.totalInsulin : 0;
+  const meal = typeof m.mealInsulin==='number' ? m.mealInsulin : total;
+  const corr = typeof m.correctionInsulin==='number' ? m.correctionInsulin : Math.max(0, +(total-meal).toFixed(2));
+  return {meal, corr, total};
+}
+
+function renderBuilderTab(){
+  const t = computeTotals();
+  const isEditingMeal = !!editingMealId;
+  return `
+    <div class="card">
+      <h2>${isEditingMeal ? 'Editando comida' : '¿Qué comida es?'}</h2>
+      <div class="mealtype-row">
+        ${MEAL_TYPES.map(mt=>`<button type="button" class="mealTypeBtn ${builder.mealType===mt?'active':''}" data-mt="${mt}">${mt}</button>`).join('')}
+      </div>
+
+      <div class="field">
+        <label>Fecha y hora</label>
+        <input type="datetime-local" id="bDatetime" value="${builder.datetime}">
+      </div>
+
+      <h3>Agregar alimento</h3>
+      <div class="seg">
+        <button type="button" class="addModeBtn ${addMode==='library'?'active':''}" data-mode="library">Desde mi lista</button>
+        <button type="button" class="addModeBtn ${addMode==='custom'?'active':''}" data-mode="custom">Nuevo / puntual</button>
+      </div>
+
+      ${addMode==='library' ? renderLibraryPicker() : renderCustomPicker()}
+
+      ${builder.items.length>0 ? `
+        <h3 style="margin-top:14px;">Comida actual</h3>
+        ${builder.items.map((it,idx)=>`
+          <div class="item-row">
+            <div>
+              <div class="item-name">${escapeHtml(it.name)}</div>
+              <div class="item-meta">${escapeHtml(it.portionLabel||'')} · x${fmt(it.multiplier,2)} → ${fmt(it.carbs)}g / ${fmt(it.insulin)}U</div>
+            </div>
+            <div class="item-right">
+              <button type="button" class="ghost danger removeItemBtn" data-idx="${idx}">Quitar</button>
+            </div>
+          </div>
+        `).join('')}
+
+        <div class="totals">
+          <div><div class="n">${fmt(t.carbs)}g</div><div class="l">carbohidratos</div></div>
+          <div><div class="n" id="totalInsulinDisplay">${fmt(t.totalInsulin)}U</div><div class="l">insulina total</div></div>
+        </div>
+        <div id="insulinBreakdown" style="text-align:center;font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">${t.correctionInsulin>0 ? `${fmt(t.mealInsulin)}U por comida + ${fmt(t.correctionInsulin)}U de corrección` : ''}</div>
+
+        <div class="row">
+          <div class="field">
+            <label>Glucosa previa (mg/dL)</label>
+            <input type="number" id="bGlucose" min="0" step="1" placeholder="Opcional" value="${builder.glucose}">
+          </div>
+          <div class="field">
+            <label>Insulina de corrección (U)</label>
+            <input type="number" id="bCorrection" min="0" step="0.1" placeholder="0" value="${builder.correctionInsulin}">
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas</label>
+          <input type="text" id="bNotes" placeholder="Opcional" value="${escapeHtml(builder.notes)}">
+        </div>
+
+        <button type="button" class="primary" id="genMsgBtn">Generar mensaje para mi doctor</button>
+        <button type="button" class="secondary" id="saveMealBtn">${isEditingMeal ? 'Guardar cambios' : 'Guardar en historial'}</button>
+        ${isEditingMeal ? `<button type="button" class="secondary" id="cancelEditMeal">Cancelar edición</button>` : ''}
+      ` : '<div class="empty">Agrega alimentos arriba para armar tu comida.</div>'}
+    </div>
+
+    ${builder.message ? `
+      <div class="card">
+        <h2>Mensaje listo para enviar</h2>
+        <textarea id="messagePreview" readonly>${escapeHtml(builder.message)}</textarea>
+        <button type="button" class="primary" id="copyMsgBtn" style="margin-top:10px;">Copiar mensaje</button>
+        <button type="button" class="secondary" id="shareMsgBtn">Compartir</button>
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderLibraryPicker(){
+  if(foods.length===0){
+    return `<div class="empty">Todavía no tienes alimentos guardados. Usa "Nuevo / puntual" o agrégalos en la pestaña "Mis alimentos".</div>`;
+  }
+  return `
+    <div class="field">
+      <select id="librarySelect">
+        ${foods.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(f=>`<option value="${f.id}">${escapeHtml(f.name)} — ${escapeHtml(f.portion||'')}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Raciones</label>
+        <input type="number" id="libraryMultiplier" min="0.25" step="0.25" value="1">
+      </div>
+      <div class="field" style="display:flex;align-items:flex-end;">
+        <button type="button" class="primary" id="addFromLibraryBtn" style="margin-bottom:10px;">Agregar</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCustomPicker(){
+  return `
+    <div class="row">
+      <div class="field">
+        <label>Alimento</label>
+        <input type="text" id="customName" placeholder="Ej. Torta de cumpleaños">
+      </div>
+      <div class="field">
+        <label>Ración</label>
+        <input type="text" id="customPortion" placeholder="Ej. 1 tajada">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Carbohidratos (g)</label>
+        <input type="number" id="customCarbs" min="0" step="0.1" placeholder="30">
+      </div>
+      <div class="field">
+        <label>Insulina (U)</label>
+        <input type="number" id="customInsulin" min="0" step="0.1" placeholder="3">
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-bottom:10px;">
+      <input type="checkbox" id="customSave" style="width:auto;"> Guardar en mi lista de alimentos
+    </label>
+    <button type="button" class="primary" id="addCustomBtn">Agregar a la comida</button>
+  `;
+}
+
+function buildMessage(){
+  const t = computeTotals();
+  const when = new Date(builder.datetime);
+  const dateStr = when.toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const timeStr = when.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+  let lines = [];
+  lines.push(`Registro de comida — ${builder.mealType}`);
+  lines.push(`${dateStr}, ${timeStr}`);
+  lines.push('');
+  builder.items.forEach(it=>{
+    lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
+  });
+  lines.push('');
+  lines.push(`Total: ${fmt(t.carbs)}g carbohidratos — ${fmt(t.totalInsulin)}U insulina aplicada${t.correctionInsulin>0 ? ` (${fmt(t.mealInsulin)}U comida + ${fmt(t.correctionInsulin)}U corrección)` : ''}`);
+  if(builder.glucose) lines.push(`Glucosa previa: ${builder.glucose} mg/dL`);
+  if(builder.notes) lines.push(`Notas: ${builder.notes}`);
+  lines.push('');
+  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
+  return lines.join('\n');
+}
+
+/* ================= HISTORY TAB (day view) ================= */
+function getDayEntries(dateStr){
+  const mealEntries = meals.filter(m=>localDateStrFromISO(m.datetime)===dateStr).map(m=>({...m, kind:'meal'}));
+  const glucoseEntries = glucoseChecks.filter(g=>localDateStrFromISO(g.datetime)===dateStr).map(g=>({...g, kind:'glucose'}));
+  return [...mealEntries, ...glucoseEntries].sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+}
+
+function renderHistoryTab(){
+  const dayEntries = getDayEntries(selectedDate);
+  const dayMeals = dayEntries.filter(e=>e.kind==='meal');
+  const dayCarbs = dayMeals.reduce((a,m)=>a+m.totalCarbs,0);
+  const dayInsulin = dayMeals.reduce((a,m)=>a+m.totalInsulin,0);
+
+  return `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
+        <button type="button" class="ghost" id="prevDayBtn" style="font-size:18px;">←</button>
+        <div style="text-align:center;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;">${formatDateHeading(selectedDate)}</div>
+          <input type="date" id="dateSelect" value="${selectedDate}" style="border:none;background:none;padding:2px 0 0;font-size:11.5px;color:var(--muted);text-align:center;width:auto;">
+        </div>
+        <button type="button" class="ghost" id="nextDayBtn" style="font-size:18px;">→</button>
+      </div>
+      <div class="totals" style="margin:0;">
+        <div><div class="n">${fmt(dayCarbs)}g</div><div class="l">carbohidratos</div></div>
+        <div><div class="n">${fmt(dayInsulin)}U</div><div class="l">insulina</div></div>
+        <div><div class="n">${dayEntries.length}</div><div class="l">registros</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Registrar solo glucosa</h3>
+      <form id="glucoseForm">
+        <div class="row">
+          <div class="field">
+            <label>Fecha y hora</label>
+            <input type="datetime-local" id="gDatetime" value="${nowLocalDatetimeValue()}" required>
+          </div>
+          <div class="field">
+            <label>Glucosa (mg/dL)</label>
+            <input type="number" id="gValue" min="0" step="1" placeholder="120" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Nota</label>
+          <input type="text" id="gNote" placeholder="Ej. antes de almorzar, post prandial 2h">
+        </div>
+        <button type="submit" class="secondary">Guardar lectura</button>
+      </form>
+    </div>
+
+    ${dayEntries.length===0 ? '<div class="empty">Sin registros este día.</div>' :
+      dayEntries.map(e => e.kind==='meal' ? renderMealEntry(e) : renderGlucoseEntry(e)).join('')
+    }
+
+    ${dayEntries.length>0 ? `
+      <button type="button" class="primary" id="copyDayBtn">Copiar reporte del día</button>
+      <button type="button" class="secondary" id="shareDayBtn">Compartir reporte del día</button>
+    ` : ''}
+
+    <div class="card">
+      <h3>Reporte semanal</h3>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">Últimos 7 días hasta la fecha seleccionada arriba.</p>
+      <button type="button" class="secondary" id="copyWeekBtn" style="margin-top:0;">Copiar reporte semanal</button>
+      <button type="button" class="secondary" id="shareWeekBtn">Compartir reporte semanal</button>
+    </div>
+  `;
+}
+
+function renderMealEntry(m){
+  const s = splitInsulin(m);
+  return `
+    <div class="entry">
+      <div class="entry-top">
+        <div>
+          <div class="entry-food">${timeStrFromISO(m.datetime)} · ${escapeHtml(m.mealType)}</div>
+        </div>
+        <div class="entry-tag">${fmt(m.totalCarbs)}g / ${fmt(s.total)}U</div>
+      </div>
+      <div class="entry-items">
+        ${m.items.map(it=>`<div>${escapeHtml(it.name)} x${fmt(it.multiplier,2)} — ${fmt(it.carbs)}g / ${fmt(it.insulin)}U</div>`).join('')}
+      </div>
+      ${s.corr>0?`<div class="entry-note">${fmt(s.meal)}U comida + ${fmt(s.corr)}U corrección</div>`:''}
+      ${m.glucose?`<div class="entry-note">Glucosa previa: ${m.glucose} mg/dL</div>`:''}
+      ${m.notes?`<div class="entry-note">${escapeHtml(m.notes)}</div>`:''}
+      <div class="entry-actions">
+        <button class="ghost editMealBtn" data-id="${m.id}">Editar</button>
+        <button class="ghost copyHistBtn" data-id="${m.id}">Copiar mensaje</button>
+        <button class="ghost danger delMealBtn" data-id="${m.id}">Eliminar</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderGlucoseEntry(g){
+  return `
+    <div class="entry">
+      <div class="entry-top">
+        <div>
+          <div class="entry-food">${timeStrFromISO(g.datetime)} · Glucosa</div>
+        </div>
+        <div class="entry-tag">${g.value} mg/dL</div>
+      </div>
+      ${g.note?`<div class="entry-note">${escapeHtml(g.note)}</div>`:''}
+      <div class="entry-actions">
+        <button class="ghost danger delGlucoseBtn" data-id="${g.id}">Eliminar</button>
+      </div>
+    </div>
+  `;
+}
+
+function messageFromMeal(m){
+  const dateStr = new Date(m.datetime).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const timeStr = timeStrFromISO(m.datetime);
+  const s = splitInsulin(m);
+  let lines = [];
+  lines.push(`Registro de comida — ${m.mealType}`);
+  lines.push(`${dateStr}, ${timeStr}`);
+  lines.push('');
+  m.items.forEach(it=>{
+    lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
+  });
+  lines.push('');
+  lines.push(`Total: ${fmt(m.totalCarbs)}g carbohidratos — ${fmt(s.total)}U insulina aplicada${s.corr>0?` (${fmt(s.meal)}U comida + ${fmt(s.corr)}U corrección)`:''}`);
+  if(m.glucose) lines.push(`Glucosa previa: ${m.glucose} mg/dL`);
+  if(m.notes) lines.push(`Notas: ${m.notes}`);
+  lines.push('');
+  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
+  return lines.join('\n');
+}
+
+function generateDayReport(dateStr){
+  const entries = getDayEntries(dateStr);
+  let lines = [];
+  lines.push(`Reporte del día — ${formatDateHeading(dateStr)}`);
+  lines.push('');
+  let totalCarbs=0, totalInsulin=0, mealCount=0;
+  entries.forEach(e=>{
+    const timeStr = timeStrFromISO(e.datetime);
+    if(e.kind==='meal'){
+      const s = splitInsulin(e);
+      lines.push(`${timeStr} — ${e.mealType}`);
+      e.items.forEach(it=>{
+        lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
+      });
+      lines.push(`Total: ${fmt(e.totalCarbs)}g carb — ${fmt(s.total)}U${s.corr>0?` (${fmt(s.meal)}U comida + ${fmt(s.corr)}U corrección)`:''}`);
+      if(e.glucose) lines.push(`Glucosa previa: ${e.glucose} mg/dL`);
+      if(e.notes) lines.push(`Nota: ${e.notes}`);
+      totalCarbs += e.totalCarbs; totalInsulin += s.total; mealCount++;
+    }else{
+      lines.push(`${timeStr} — Glucosa: ${e.value} mg/dL${e.note?` (${e.note})`:''}`);
+    }
+    lines.push('');
+  });
+  lines.push(`Total del día: ${fmt(totalCarbs)}g carbohidratos — ${fmt(totalInsulin)}U insulina en ${mealCount} comida${mealCount!==1?'s':''}`);
+  lines.push('');
+  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
+  return lines.join('\n');
+}
+
+function generateWeekReport(endDateStr){
+  const startDateStr = addDaysToDateStr(endDateStr, -6);
+  let lines = [];
+  lines.push(`Reporte semanal — ${formatShortDate(startDateStr)} al ${formatShortDate(endDateStr)}`);
+  lines.push('');
+  let weekCarbs=0, weekInsulin=0, weekMealCount=0;
+  let glucoseValues = [];
+  for(let i=0;i<7;i++){
+    const ds = addDaysToDateStr(startDateStr, i);
+    const entries = getDayEntries(ds);
+    const dayMeals = entries.filter(e=>e.kind==='meal');
+    const dayGlucose = entries.filter(e=>e.kind==='glucose');
+    dayGlucose.forEach(g=>glucoseValues.push(g.value));
+    if(entries.length===0) continue;
+    const dCarbs = dayMeals.reduce((a,m)=>a+m.totalCarbs,0);
+    const dInsulin = dayMeals.reduce((a,m)=>a+m.totalInsulin,0);
+    weekCarbs += dCarbs; weekInsulin += dInsulin; weekMealCount += dayMeals.length;
+    let dayLine = `${formatShortDateWithWeekday(ds)}: ${dayMeals.length} comida${dayMeals.length!==1?'s':''} — ${fmt(dCarbs)}g carb / ${fmt(dInsulin)}U`;
+    if(dayGlucose.length) dayLine += ` · glucosa: ${dayGlucose.map(g=>g.value).join(', ')} mg/dL`;
+    lines.push(dayLine);
+  }
+  lines.push('');
+  if(glucoseValues.length){
+    const avg = glucoseValues.reduce((a,b)=>a+b,0)/glucoseValues.length;
+    lines.push(`Glucosa: promedio ${fmt(avg,0)} mg/dL (${glucoseValues.length} lecturas, rango ${Math.min(...glucoseValues)}–${Math.max(...glucoseValues)})`);
+  }
+  lines.push(`Total semana: ${fmt(weekCarbs)}g carbohidratos — ${fmt(weekInsulin)}U insulina en ${weekMealCount} comida${weekMealCount!==1?'s':''}`);
+  lines.push('');
+  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
+  return lines.join('\n');
+}
+
+/* ================= SETTINGS TAB (backup/export) ================= */
+function renderSettingsTab(){
+  return `
+    <div class="card">
+      <h2>Respaldo y exportación</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Tus datos ya quedan guardados en tu cuenta de Claude, pero puedes exportarlos aquí como respaldo extra o para abrir en Excel.</p>
+      <button type="button" class="primary" id="exportJsonBtn">Exportar respaldo completo (JSON)</button>
+      <button type="button" class="secondary" id="exportMealsCsvBtn">Exportar comidas (CSV)</button>
+      <button type="button" class="secondary" id="exportGlucoseCsvBtn">Exportar glucosa (CSV)</button>
+    </div>
+    <div class="card">
+      <h2>Restaurar</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;">Restaura tus datos desde un archivo de respaldo JSON. Esto reemplaza lo que tengas guardado ahora mismo en la app.</p>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+      <button type="button" class="secondary" id="importBtn" style="margin-top:0;">Restaurar desde archivo</button>
+    </div>
+  `;
+}
+
+/* ---------- Event wiring (delegated, re-attached on every render) ---------- */
+function attachHandlers(){
+  // FOODS TAB
+  const foodForm = document.getElementById('foodForm');
+  if(foodForm){
+    foodForm.addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const name = document.getElementById('fName').value.trim();
+      const portion = document.getElementById('fPortion').value.trim();
+      const carbs = parseFloat(document.getElementById('fCarbs').value);
+      const insulin = parseFloat(document.getElementById('fInsulin').value);
+      if(!name || isNaN(carbs) || isNaN(insulin)) return;
+      if(editingFoodId){
+        const f = foods.find(x=>x.id===editingFoodId);
+        f.name=name; f.portion=portion; f.carbs=carbs; f.insulin=insulin;
+        editingFoodId = null;
+      }else{
+        foods.push({id:uid(), name, portion, carbs, insulin});
+      }
+      await saveFoods();
+      render();
+      showToast('Guardado');
+    });
+  }
+  const cancelEdit = document.getElementById('cancelEditFood');
+  if(cancelEdit) cancelEdit.addEventListener('click', ()=>{ editingFoodId=null; render(); });
+
+  attachFoodListHandlers();
+
+  const foodSearch = document.getElementById('foodSearch');
+  if(foodSearch){
+    foodSearch.addEventListener('input', (e)=>{
+      foodSearchQuery = e.target.value;
+      const filtered = foodSearchQuery.trim()
+        ? foods.filter(f=>f.name.toLowerCase().includes(foodSearchQuery.trim().toLowerCase()))
+        : foods;
+      document.getElementById('foodListContainer').innerHTML = renderFoodListHTML(filtered);
+      document.getElementById('foodCountLabel').textContent = `Mi lista (${filtered.length}${foodSearchQuery.trim()?` de ${foods.length}`:''})`;
+      attachFoodListHandlers();
+    });
+  }
+
+  // BUILDER TAB
+  document.querySelectorAll('.mealTypeBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{ builder.mealType=b.dataset.mt; render(); });
+  });
+  document.querySelectorAll('.addModeBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{ addMode=b.dataset.mode; render(); });
+  });
+
+  const addFromLibraryBtn = document.getElementById('addFromLibraryBtn');
+  if(addFromLibraryBtn){
+    addFromLibraryBtn.addEventListener('click', ()=>{
+      const sel = document.getElementById('librarySelect');
+      const mult = parseFloat(document.getElementById('libraryMultiplier').value) || 1;
+      const f = foods.find(x=>x.id===sel.value);
+      if(!f) return;
+      builder.items.push({
+        foodId: f.id, name: f.name, portionLabel: f.portion,
+        multiplier: mult, carbs: +(f.carbs*mult).toFixed(2), insulin: +(f.insulin*mult).toFixed(2)
+      });
+      builder.message='';
+      render();
+    });
+  }
+
+  const addCustomBtn = document.getElementById('addCustomBtn');
+  if(addCustomBtn){
+    addCustomBtn.addEventListener('click', async ()=>{
+      const name = document.getElementById('customName').value.trim();
+      const portion = document.getElementById('customPortion').value.trim();
+      const carbs = parseFloat(document.getElementById('customCarbs').value);
+      const insulin = parseFloat(document.getElementById('customInsulin').value);
+      const save = document.getElementById('customSave').checked;
+      if(!name || isNaN(carbs) || isNaN(insulin)) return;
+      builder.items.push({
+        foodId:null, name, portionLabel:portion, multiplier:1, carbs, insulin
+      });
+      if(save){
+        foods.push({id:uid(), name, portion, carbs, insulin});
+        await saveFoods();
+      }
+      builder.message='';
+      render();
+    });
+  }
+
+  document.querySelectorAll('.removeItemBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      builder.items.splice(parseInt(b.dataset.idx),1);
+      builder.message='';
+      render();
+    });
+  });
+
+  const bDatetime = document.getElementById('bDatetime');
+  if(bDatetime) bDatetime.addEventListener('input', (e)=>{ builder.datetime = e.target.value; builder.message=''; });
+
+  const bGlucose = document.getElementById('bGlucose');
+  if(bGlucose) bGlucose.addEventListener('input', (e)=>{ builder.glucose = e.target.value; });
+  const bCorrection = document.getElementById('bCorrection');
+  if(bCorrection){
+    bCorrection.addEventListener('input', (e)=>{
+      builder.correctionInsulin = e.target.value;
+      builder.message = '';
+      const t = computeTotals();
+      const totalEl = document.getElementById('totalInsulinDisplay');
+      if(totalEl) totalEl.textContent = fmt(t.totalInsulin)+'U';
+      const breakEl = document.getElementById('insulinBreakdown');
+      if(breakEl) breakEl.textContent = t.correctionInsulin>0 ? `${fmt(t.mealInsulin)}U por comida + ${fmt(t.correctionInsulin)}U de corrección` : '';
+    });
+  }
+  const bNotes = document.getElementById('bNotes');
+  if(bNotes) bNotes.addEventListener('input', (e)=>{ builder.notes = e.target.value; });
+
+  const genMsgBtn = document.getElementById('genMsgBtn');
+  if(genMsgBtn) genMsgBtn.addEventListener('click', ()=>{
+    builder.message = buildMessage();
+    render();
+    setTimeout(()=>document.getElementById('messagePreview')?.scrollIntoView({behavior:'smooth',block:'center'}), 50);
+  });
+
+  const saveMealBtn = document.getElementById('saveMealBtn');
+  if(saveMealBtn) saveMealBtn.addEventListener('click', async ()=>{
+    const t = computeTotals();
+    const iso = new Date(builder.datetime).toISOString();
+    const wasEditing = !!editingMealId;
+    if(wasEditing){
+      const idx = meals.findIndex(m=>m.id===editingMealId);
+      if(idx>-1){
+        meals[idx] = {
+          ...meals[idx],
+          datetime: iso,
+          mealType: builder.mealType,
+          items: builder.items.slice(),
+          totalCarbs: t.carbs,
+          mealInsulin: t.mealInsulin,
+          correctionInsulin: t.correctionInsulin,
+          totalInsulin: t.totalInsulin,
+          glucose: builder.glucose || null,
+          notes: builder.notes || ''
+        };
+      }
+      editingMealId = null;
+    }else{
+      meals.push({
+        id: uid(),
+        datetime: iso,
+        mealType: builder.mealType,
+        items: builder.items.slice(),
+        totalCarbs: t.carbs,
+        mealInsulin: t.mealInsulin,
+        correctionInsulin: t.correctionInsulin,
+        totalInsulin: t.totalInsulin,
+        glucose: builder.glucose || null,
+        notes: builder.notes || ''
+      });
+    }
+    await saveMeals();
+    selectedDate = localDateStrFromISO(iso);
+    builder = {mealType:'Cena', datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
+    currentTab = 'history';
+    render();
+    showToast(wasEditing ? 'Comida actualizada' : 'Comida guardada');
+  });
+
+  const cancelEditMealBtn = document.getElementById('cancelEditMeal');
+  if(cancelEditMealBtn) cancelEditMealBtn.addEventListener('click', ()=>{
+    editingMealId = null;
+    builder = {mealType:'Cena', datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
+    render();
+  });
+
+  const copyMsgBtn = document.getElementById('copyMsgBtn');
+  if(copyMsgBtn) copyMsgBtn.addEventListener('click', ()=>copyText(builder.message));
+  const shareMsgBtn = document.getElementById('shareMsgBtn');
+  if(shareMsgBtn) shareMsgBtn.addEventListener('click', ()=>shareText(builder.message));
+
+  // HISTORY TAB
+  const prevDayBtn = document.getElementById('prevDayBtn');
+  if(prevDayBtn) prevDayBtn.addEventListener('click', ()=>{ selectedDate = addDaysToDateStr(selectedDate,-1); render(); });
+  const nextDayBtn = document.getElementById('nextDayBtn');
+  if(nextDayBtn) nextDayBtn.addEventListener('click', ()=>{ selectedDate = addDaysToDateStr(selectedDate,1); render(); });
+  const dateSelect = document.getElementById('dateSelect');
+  if(dateSelect) dateSelect.addEventListener('change', (e)=>{ selectedDate = e.target.value; render(); });
+
+  const glucoseForm = document.getElementById('glucoseForm');
+  if(glucoseForm){
+    glucoseForm.addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const dtVal = document.getElementById('gDatetime').value;
+      const value = parseFloat(document.getElementById('gValue').value);
+      const note = document.getElementById('gNote').value.trim();
+      if(!dtVal || isNaN(value)) return;
+      const iso = new Date(dtVal).toISOString();
+      glucoseChecks.push({id:uid(), datetime:iso, value, note});
+      await saveGlucoseChecks();
+      selectedDate = localDateStrFromISO(iso);
+      render();
+      showToast('Lectura guardada');
+    });
+  }
+
+  document.querySelectorAll('.delGlucoseBtn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar esta lectura de glucosa?')) return;
+      glucoseChecks = glucoseChecks.filter(g=>g.id!==b.dataset.id);
+      await saveGlucoseChecks();
+      render();
+    });
+  });
+
+  const copyDayBtn = document.getElementById('copyDayBtn');
+  if(copyDayBtn) copyDayBtn.addEventListener('click', ()=>copyText(generateDayReport(selectedDate)));
+  const shareDayBtn = document.getElementById('shareDayBtn');
+  if(shareDayBtn) shareDayBtn.addEventListener('click', ()=>shareText(generateDayReport(selectedDate)));
+
+  const copyWeekBtn = document.getElementById('copyWeekBtn');
+  if(copyWeekBtn) copyWeekBtn.addEventListener('click', ()=>copyText(generateWeekReport(selectedDate)));
+  const shareWeekBtn = document.getElementById('shareWeekBtn');
+  if(shareWeekBtn) shareWeekBtn.addEventListener('click', ()=>shareText(generateWeekReport(selectedDate)));
+
+  document.querySelectorAll('.editMealBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const m = meals.find(x=>x.id===b.dataset.id);
+      if(!m) return;
+      const s = splitInsulin(m);
+      editingMealId = m.id;
+      builder = {
+        mealType: m.mealType,
+        datetime: datetimeLocalValueFromISO(m.datetime),
+        items: m.items.map(it=>({...it})),
+        glucose: m.glucose || '',
+        correctionInsulin: s.corr>0 ? String(s.corr) : '',
+        notes: m.notes || '',
+        message: ''
+      };
+      currentTab = 'builder';
+      render();
+      window.scrollTo(0,0);
+    });
+  });
+
+  document.querySelectorAll('.copyHistBtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const m = meals.find(x=>x.id===b.dataset.id);
+      if(m) copyText(messageFromMeal(m));
+    });
+  });
+  document.querySelectorAll('.delMealBtn').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar esta comida del historial?')) return;
+      meals = meals.filter(m=>m.id!==b.dataset.id);
+      await saveMeals();
+      render();
+    });
+  });
+
+  // SETTINGS TAB
+  const exportJsonBtn = document.getElementById('exportJsonBtn');
+  if(exportJsonBtn) exportJsonBtn.addEventListener('click', exportBackupJSON);
+  const exportMealsCsvBtn = document.getElementById('exportMealsCsvBtn');
+  if(exportMealsCsvBtn) exportMealsCsvBtn.addEventListener('click', exportMealsCSV);
+  const exportGlucoseCsvBtn = document.getElementById('exportGlucoseCsvBtn');
+  if(exportGlucoseCsvBtn) exportGlucoseCsvBtn.addEventListener('click', exportGlucoseCSV);
+  const importBtn = document.getElementById('importBtn');
+  if(importBtn) importBtn.addEventListener('click', ()=>document.getElementById('importFile').click());
+  const importFile = document.getElementById('importFile');
+  if(importFile){
+    importFile.addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(!confirm('Esto reemplazará tus datos actuales (alimentos, comidas y glucosa) con los del archivo. ¿Continuar?')){
+          e.target.value='';
+          return;
+        }
+        foods = Array.isArray(data.foods) ? data.foods : [];
+        meals = Array.isArray(data.meals) ? data.meals : [];
+        glucoseChecks = Array.isArray(data.glucoseChecks) ? data.glucoseChecks : [];
+        await saveFoods();
+        await saveMeals();
+        await saveGlucoseChecks();
+        render();
+        showToast('Datos restaurados');
+      }catch(err){
+        showToast('Archivo inválido');
+      }
+      e.target.value='';
+    });
+  }
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('Copiado al portapapeles');
+  }catch(e){
+    showToast('No se pudo copiar');
+  }
+}
+async function shareText(text){
+  if(navigator.share){
+    try{ await navigator.share({text}); }
+    catch(e){ /* user cancelled or unsupported, ignore */ }
+  }else{
+    copyText(text);
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
