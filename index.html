@@ -672,18 +672,16 @@ function buildMessage(){
   const dateStr = when.toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
   const timeStr = when.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
   let lines = [];
-  lines.push(`Registro de comida — ${builder.mealType}`);
-  lines.push(`${dateStr}, ${timeStr}`);
+  lines.push(`${builder.mealType} — ${dateStr}, ${timeStr}`);
+  if(builder.glucose) lines.push(`Glucosa: ${builder.glucose} mg/dL`);
+  if(t.correctionInsulin>0) lines.push(`Corrección: ${fmt(t.correctionInsulin)}U`);
   lines.push('');
   builder.items.forEach(it=>{
     lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
   });
   lines.push('');
   lines.push(`Total: ${fmt(t.carbs)}g carbohidratos — ${fmt(t.totalInsulin)}U insulina aplicada${t.correctionInsulin>0 ? ` (${fmt(t.mealInsulin)}U comida + ${fmt(t.correctionInsulin)}U corrección)` : ''}`);
-  if(builder.glucose) lines.push(`Glucosa previa: ${builder.glucose} mg/dL`);
   if(builder.notes) lines.push(`Notas: ${builder.notes}`);
-  lines.push('');
-  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
   return lines.join('\n');
 }
 
@@ -803,18 +801,16 @@ function messageFromMeal(m){
   const timeStr = timeStrFromISO(m.datetime);
   const s = splitInsulin(m);
   let lines = [];
-  lines.push(`Registro de comida — ${m.mealType}`);
-  lines.push(`${dateStr}, ${timeStr}`);
+  lines.push(`${m.mealType} — ${dateStr}, ${timeStr}`);
+  if(m.glucose) lines.push(`Glucosa: ${m.glucose} mg/dL`);
+  if(s.corr>0) lines.push(`Corrección: ${fmt(s.corr)}U`);
   lines.push('');
   m.items.forEach(it=>{
     lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
   });
   lines.push('');
   lines.push(`Total: ${fmt(m.totalCarbs)}g carbohidratos — ${fmt(s.total)}U insulina aplicada${s.corr>0?` (${fmt(s.meal)}U comida + ${fmt(s.corr)}U corrección)`:''}`);
-  if(m.glucose) lines.push(`Glucosa previa: ${m.glucose} mg/dL`);
   if(m.notes) lines.push(`Notas: ${m.notes}`);
-  lines.push('');
-  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
   return lines.join('\n');
 }
 
@@ -828,12 +824,13 @@ function generateDayReport(dateStr){
     const timeStr = timeStrFromISO(e.datetime);
     if(e.kind==='meal'){
       const s = splitInsulin(e);
-      lines.push(`${timeStr} — ${e.mealType}`);
+      lines.push(`${e.mealType} — ${timeStr}`);
+      if(e.glucose) lines.push(`Glucosa: ${e.glucose} mg/dL`);
+      if(s.corr>0) lines.push(`Corrección: ${fmt(s.corr)}U`);
       e.items.forEach(it=>{
         lines.push(`• ${it.name}${it.portionLabel?` (${it.portionLabel})`:''} x${fmt(it.multiplier,2)}: ${fmt(it.carbs)}g carb / ${fmt(it.insulin)}U`);
       });
       lines.push(`Total: ${fmt(e.totalCarbs)}g carb — ${fmt(s.total)}U${s.corr>0?` (${fmt(s.meal)}U comida + ${fmt(s.corr)}U corrección)`:''}`);
-      if(e.glucose) lines.push(`Glucosa previa: ${e.glucose} mg/dL`);
       if(e.notes) lines.push(`Nota: ${e.notes}`);
       totalCarbs += e.totalCarbs; totalInsulin += s.total; mealCount++;
     }else{
@@ -842,8 +839,6 @@ function generateDayReport(dateStr){
     lines.push('');
   });
   lines.push(`Total del día: ${fmt(totalCarbs)}g carbohidratos — ${fmt(totalInsulin)}U insulina en ${mealCount} comida${mealCount!==1?'s':''}`);
-  lines.push('');
-  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
   return lines.join('\n');
 }
 
@@ -874,8 +869,6 @@ function generateWeekReport(endDateStr){
     lines.push(`Glucosa: promedio ${fmt(avg,0)} mg/dL (${glucoseValues.length} lecturas, rango ${Math.min(...glucoseValues)}–${Math.max(...glucoseValues)})`);
   }
   lines.push(`Total semana: ${fmt(weekCarbs)}g carbohidratos — ${fmt(weekInsulin)}U insulina en ${weekMealCount} comida${weekMealCount!==1?'s':''}`);
-  lines.push('');
-  lines.push('(Registro generado con mi app de seguimiento; los ratios por alimento fueron definidos previamente con mi médico.)');
   return lines.join('\n');
 }
 
