@@ -190,6 +190,19 @@
   }
   .mealtype-row button.active{background:var(--amber);color:#fff;border-color:var(--amber);}
 
+  .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .calGridHeader{margin-bottom:4px;}
+  .calGridHeader div{text-align:center;font-size:10.5px;color:var(--muted);font-weight:600;}
+  .calDay{
+    aspect-ratio:1;background:none;border:none;border-radius:9px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:13px;color:var(--ink);font-family:'Inter',sans-serif;position:relative;padding:0;
+  }
+  .calDay.today{font-weight:700;color:var(--teal-dark);box-shadow:inset 0 0 0 1.5px var(--teal);}
+  .calDay.selected{background:var(--teal);color:#fff;}
+  .calDay .calDot{width:4px;height:4px;border-radius:50%;background:var(--amber);position:absolute;bottom:5px;}
+  .calDay.selected .calDot{background:#fff;}
+
   .food-list{max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;}
   .food-opt{
     display:flex;justify-content:space-between;align-items:center;
@@ -392,9 +405,12 @@ let editingFoodId = null;
 let editingMealId = null;
 let foodSearchQuery = '';
 let addMode = 'library'; // 'library' | 'custom'
+let builderFoodSearch = '';
+let selectedLibraryFoodId = null;
 let selectedDate = todayLocalDateStr();
+let calendarMonth = selectedDate.slice(0,7);
 let builder = {
-  mealType: 'Cena',
+  mealType: defaultMealTypeForNow(),
   datetime: nowLocalDatetimeValue(),
   items: [], // {foodId(optional), name, portionLabel, multiplier, carbs, insulin}
   glucose: '',
@@ -473,6 +489,15 @@ function nowLocalDatetimeValue(){
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
+function defaultMealTypeForNow(){
+  const h = new Date().getHours();
+  if(h>=5 && h<10) return 'Desayuno';
+  if(h>=10 && h<12) return 'Media mañana';
+  if(h>=12 && h<15) return 'Almuerzo';
+  if(h>=15 && h<18) return 'Merienda';
+  if(h>=18 && h<22) return 'Cena';
+  return 'Colación nocturna';
+}
 function localDateStrFromISO(iso){
   const d = new Date(iso);
   return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
@@ -486,6 +511,21 @@ function addDaysToDateStr(dateStr, delta){
   const dt = new Date(y, m-1, d);
   dt.setDate(dt.getDate()+delta);
   return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+}
+function addMonthsToMonthStr(monthStr, delta){
+  const [y,m] = monthStr.split('-').map(Number);
+  const dt = new Date(y, m-1+delta, 1);
+  return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}`;
+}
+function setSelectedDate(dateStr){
+  selectedDate = dateStr;
+  calendarMonth = dateStr.slice(0,7);
+}
+function datesWithEntries(){
+  const s = new Set();
+  meals.forEach(m=>s.add(localDateStrFromISO(m.datetime)));
+  glucoseChecks.forEach(g=>s.add(localDateStrFromISO(g.datetime)));
+  return s;
 }
 function formatDateHeading(dateStr){
   const [y,m,d] = dateStr.split('-').map(Number);
@@ -705,13 +745,16 @@ function renderBuilderTab(){
           <div class="item-row">
             <div>
               <div class="item-name">${escapeHtml(it.name)}</div>
-              <div class="item-meta">${escapeHtml(it.portionLabel||'')} · x${fmt(it.multiplier,2)} → ${fmt(it.carbs)}g / ${fmt(it.insulin)}U</div>
+              <div class="item-meta">${escapeHtml(it.portionLabel||'')} · x${fmt(it.multiplier,2)} → ${fmt(it.carbs)}g carb</div>
             </div>
             <div class="item-right">
+              <input type="number" class="itemInsulinInput" data-idx="${idx}" value="${it.insulin}" min="0" step="0.1" style="width:56px;">
+              <span style="font-size:12px;color:var(--muted);">U</span>
               <button type="button" class="ghost danger removeItemBtn" data-idx="${idx}">Quitar</button>
             </div>
           </div>
         `).join('')}
+        <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 12px 2px;">Puedes ajustar la insulina de un alimento solo para esta comida (ej. por ejercicio) sin cambiar tu lista.</p>
 
         <div class="totals">
           <div><div class="n">${fmt(t.carbs)}g</div><div class="l">carbohidratos</div></div>
@@ -755,22 +798,47 @@ function renderLibraryPicker(){
   if(foods.length===0){
     return `<div class="empty">Todavía no tienes alimentos guardados. Usa "Nuevo / puntual" o agrégalos en la pestaña "Mis alimentos".</div>`;
   }
+  const selectedFood = foods.find(f=>f.id===selectedLibraryFoodId);
+  const filtered = builderFoodSearch.trim()
+    ? foods.filter(f=>f.name.toLowerCase().includes(builderFoodSearch.trim().toLowerCase()))
+    : foods;
   return `
     <div class="field">
-      <select id="librarySelect">
-        ${foods.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(f=>`<option value="${f.id}">${escapeHtml(f.name)} — ${escapeHtml(f.portion||'')}</option>`).join('')}
-      </select>
+      <input type="text" id="librarySearch" placeholder="Buscar alimento..." value="${escapeHtml(builderFoodSearch)}" autocomplete="off">
     </div>
-    <div class="row">
-      <div class="field">
-        <label>Raciones</label>
-        <input type="number" id="libraryMultiplier" min="0.25" step="0.25" value="1">
+    <div id="librarySearchResults" class="food-list">${renderLibrarySearchResults(filtered)}</div>
+    ${selectedFood ? `
+      <div style="background:var(--teal-soft);border:1px solid #D3E6DE;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px;color:var(--teal-dark);">
+        Seleccionado: <b>${escapeHtml(selectedFood.name)}</b> — ${fmt(selectedFood.carbs)}g / ${fmt(selectedFood.insulin)}U por ración
       </div>
-      <div class="field" style="display:flex;align-items:flex-end;">
-        <button type="button" class="primary" id="addFromLibraryBtn" style="margin-bottom:10px;">Agregar</button>
+      <div class="row">
+        <div class="field">
+          <label>Raciones</label>
+          <input type="number" id="libraryMultiplier" min="0.25" step="0.25" value="1">
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;">
+          <button type="button" class="primary" id="addFromLibraryBtn" style="margin-bottom:10px;">Agregar</button>
+        </div>
       </div>
-    </div>
+    ` : ''}
   `;
+}
+
+function renderLibrarySearchResults(list){
+  if(list.length===0) return '<div class="food-opt" style="color:var(--muted);">Sin resultados</div>';
+  return list.slice().sort((a,b)=>a.name.localeCompare(b.name)).slice(0,8).map(f=>`
+    <div class="food-opt libraryResultItem" data-id="${f.id}" style="cursor:pointer;">
+      <div><div class="food-opt-name">${escapeHtml(f.name)}</div><div class="food-opt-meta">${escapeHtml(f.portion||'')} · ${fmt(f.carbs)}g/${fmt(f.insulin)}U</div></div>
+    </div>
+  `).join('');
+}
+function attachLibraryResultHandlers(){
+  document.querySelectorAll('.libraryResultItem').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      selectedLibraryFoodId = el.dataset.id;
+      render();
+    });
+  });
 }
 
 function renderCustomPicker(){
@@ -828,6 +896,38 @@ function getDayEntries(dateStr){
   return [...mealEntries, ...glucoseEntries].sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
 }
 
+function renderCalendarCard(){
+  const [y,m] = calendarMonth.split('-').map(Number);
+  const firstOfMonth = new Date(y, m-1, 1);
+  const startWeekday = firstOfMonth.getDay();
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const entrySet = datesWithEntries();
+  const todayStr = todayLocalDateStr();
+  const monthLabel = firstOfMonth.toLocaleDateString('es-PE', {month:'long', year:'numeric'});
+
+  let cells = '';
+  for(let i=0;i<startWeekday;i++) cells += `<div></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${y}-${pad2(m)}-${pad2(d)}`;
+    const cls = ['calDay'];
+    if(dateStr===selectedDate) cls.push('selected');
+    if(dateStr===todayStr) cls.push('today');
+    cells += `<button type="button" class="${cls.join(' ')}" data-date="${dateStr}"><span>${d}</span>${entrySet.has(dateStr)?'<i class="calDot"></i>':''}</button>`;
+  }
+
+  return `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <button type="button" class="ghost" id="prevMonthBtn" style="font-size:18px;">←</button>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14.5px;text-transform:capitalize;">${monthLabel}</div>
+        <button type="button" class="ghost" id="nextMonthBtn" style="font-size:18px;">→</button>
+      </div>
+      <div class="calGrid calGridHeader"><div>D</div><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div></div>
+      <div class="calGrid">${cells}</div>
+    </div>
+  `;
+}
+
 function renderHistoryTab(){
   const dayEntries = getDayEntries(selectedDate);
   const dayMeals = dayEntries.filter(e=>e.kind==='meal');
@@ -835,15 +935,10 @@ function renderHistoryTab(){
   const dayInsulin = dayMeals.reduce((a,m)=>a+m.totalInsulin,0);
 
   return `
+    ${renderCalendarCard()}
+
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
-        <button type="button" class="ghost" id="prevDayBtn" style="font-size:18px;">←</button>
-        <div style="text-align:center;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;">${formatDateHeading(selectedDate)}</div>
-          <input type="date" id="dateSelect" value="${selectedDate}" style="border:none;background:none;padding:2px 0 0;font-size:11.5px;color:var(--muted);text-align:center;width:auto;">
-        </div>
-        <button type="button" class="ghost" id="nextDayBtn" style="font-size:18px;">→</button>
-      </div>
+      <div style="text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;margin-bottom:10px;">${formatDateHeading(selectedDate)}</div>
       <div class="totals" style="margin:0;">
         <div><div class="n">${fmt(dayCarbs)}g</div><div class="l">carbohidratos</div></div>
         <div><div class="n">${fmt(dayInsulin)}U</div><div class="l">insulina</div></div>
@@ -1079,21 +1174,40 @@ function attachHandlers(){
     b.addEventListener('click', ()=>{ builder.mealType=b.dataset.mt; render(); });
   });
   document.querySelectorAll('.addModeBtn').forEach(b=>{
-    b.addEventListener('click', ()=>{ addMode=b.dataset.mode; render(); });
+    b.addEventListener('click', ()=>{
+      addMode=b.dataset.mode;
+      builderFoodSearch = '';
+      selectedLibraryFoodId = null;
+      render();
+    });
   });
+
+  const librarySearchInput = document.getElementById('librarySearch');
+  if(librarySearchInput){
+    librarySearchInput.addEventListener('input', (e)=>{
+      builderFoodSearch = e.target.value;
+      const filtered = builderFoodSearch.trim()
+        ? foods.filter(f=>f.name.toLowerCase().includes(builderFoodSearch.trim().toLowerCase()))
+        : foods;
+      document.getElementById('librarySearchResults').innerHTML = renderLibrarySearchResults(filtered);
+      attachLibraryResultHandlers();
+    });
+  }
+  attachLibraryResultHandlers();
 
   const addFromLibraryBtn = document.getElementById('addFromLibraryBtn');
   if(addFromLibraryBtn){
     addFromLibraryBtn.addEventListener('click', ()=>{
-      const sel = document.getElementById('librarySelect');
       const mult = parseFloat(document.getElementById('libraryMultiplier').value) || 1;
-      const f = foods.find(x=>x.id===sel.value);
+      const f = foods.find(x=>x.id===selectedLibraryFoodId);
       if(!f) return;
       builder.items.push({
         foodId: f.id, name: f.name, portionLabel: f.portion,
         multiplier: mult, carbs: +(f.carbs*mult).toFixed(2), insulin: +(f.insulin*mult).toFixed(2)
       });
       builder.message='';
+      builderFoodSearch = '';
+      selectedLibraryFoodId = null;
       render();
     });
   }
@@ -1124,6 +1238,20 @@ function attachHandlers(){
       builder.items.splice(parseInt(b.dataset.idx),1);
       builder.message='';
       render();
+    });
+  });
+
+  document.querySelectorAll('.itemInsulinInput').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const idx = parseInt(e.target.dataset.idx);
+      const val = parseFloat(e.target.value);
+      builder.items[idx].insulin = isNaN(val) ? 0 : val;
+      builder.message = '';
+      const t = computeTotals();
+      const totalEl = document.getElementById('totalInsulinDisplay');
+      if(totalEl) totalEl.textContent = fmt(t.totalInsulin)+'U';
+      const breakEl = document.getElementById('insulinBreakdown');
+      if(breakEl) breakEl.textContent = t.correctionInsulin>0 ? `${fmt(t.mealInsulin)}U por comida + ${fmt(t.correctionInsulin)}U de corrección` : '';
     });
   });
 
@@ -1191,8 +1319,8 @@ function attachHandlers(){
       });
     }
     await saveMeals();
-    selectedDate = localDateStrFromISO(iso);
-    builder = {mealType:'Cena', datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
+    setSelectedDate(localDateStrFromISO(iso));
+    builder = {mealType:defaultMealTypeForNow(), datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
     currentTab = 'history';
     render();
     showToast(wasEditing ? 'Comida actualizada' : 'Comida guardada');
@@ -1201,7 +1329,7 @@ function attachHandlers(){
   const cancelEditMealBtn = document.getElementById('cancelEditMeal');
   if(cancelEditMealBtn) cancelEditMealBtn.addEventListener('click', ()=>{
     editingMealId = null;
-    builder = {mealType:'Cena', datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
+    builder = {mealType:defaultMealTypeForNow(), datetime: nowLocalDatetimeValue(), items:[], glucose:'', correctionInsulin:'', notes:'', message:''};
     render();
   });
 
@@ -1211,12 +1339,13 @@ function attachHandlers(){
   if(shareMsgBtn) shareMsgBtn.addEventListener('click', ()=>shareText(builder.message));
 
   // HISTORY TAB
-  const prevDayBtn = document.getElementById('prevDayBtn');
-  if(prevDayBtn) prevDayBtn.addEventListener('click', ()=>{ selectedDate = addDaysToDateStr(selectedDate,-1); render(); });
-  const nextDayBtn = document.getElementById('nextDayBtn');
-  if(nextDayBtn) nextDayBtn.addEventListener('click', ()=>{ selectedDate = addDaysToDateStr(selectedDate,1); render(); });
-  const dateSelect = document.getElementById('dateSelect');
-  if(dateSelect) dateSelect.addEventListener('change', (e)=>{ selectedDate = e.target.value; render(); });
+  const prevMonthBtn = document.getElementById('prevMonthBtn');
+  if(prevMonthBtn) prevMonthBtn.addEventListener('click', ()=>{ calendarMonth = addMonthsToMonthStr(calendarMonth,-1); render(); });
+  const nextMonthBtn = document.getElementById('nextMonthBtn');
+  if(nextMonthBtn) nextMonthBtn.addEventListener('click', ()=>{ calendarMonth = addMonthsToMonthStr(calendarMonth,1); render(); });
+  document.querySelectorAll('.calDay').forEach(el=>{
+    el.addEventListener('click', ()=>{ setSelectedDate(el.dataset.date); render(); });
+  });
 
   const glucoseForm = document.getElementById('glucoseForm');
   if(glucoseForm){
@@ -1229,7 +1358,7 @@ function attachHandlers(){
       const iso = new Date(dtVal).toISOString();
       glucoseChecks.push({id:uid(), datetime:iso, value, note});
       await saveGlucoseChecks();
-      selectedDate = localDateStrFromISO(iso);
+      setSelectedDate(localDateStrFromISO(iso));
       render();
       showToast('Lectura guardada');
     });
